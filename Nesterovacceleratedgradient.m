@@ -1,4 +1,4 @@
-%%
+%% The script plots the orderparameter and generalization error for Nesterovaccelerated method
 student_scalar = [];
 teacher_scalar = [];
 gen_error = [];
@@ -14,7 +14,7 @@ beta = 0.9 % maybe this scales
 %beta = 0.7666668/samples
 epsilon = 2*pi
 K=2
-rng(5782)
+rngSeed = 999;
 teacher_weights = randn(K,samples)./sqrt(samples);
 teacher_weights_ortho = GramSchmidt(teacher_weights');
 teacher_weights = teacher_weights_ortho';
@@ -33,13 +33,13 @@ for i = 1:mu
        learning_rate = learning_rate - 0.1/samples
     end
     
-   % if  beta > 0
-   %   beta = cos(epsilon)*0.9;
-   %   i;
-   %   epsilon = epsilon - pi/10000;
-   % else
-   %     beta = 0;
-   % end
+   if  beta > 0
+     beta = cos(epsilon)*0.9;
+     i;
+     epsilon = epsilon - pi/10000;
+   else
+       beta = 0;
+   end
     
     rng(rngSeed)
     dataset = randn(samples,1);
@@ -56,7 +56,8 @@ for i = 1:mu
 
     activation_teacher  = erf(teacher_scalar/sqrt(2));
     activation_student  = erf(student_scalar(j)/sqrt(2));
-    
+    % summation of all the dot products of student & teacher weight vectors
+    % with input data.
     si = si + activation_student;
     tou = tou + activation_teacher;
     
@@ -64,15 +65,19 @@ for i = 1:mu
     
     for j = 1:K
         if mod(i,samples) == 0
+            % R = 1st student dot product with both teacher weight vetor
             R_in(i/samples,j) = dot(student_weights(1,:), teacher_weights(j,:));
+            % Q = 1st student dot product with itself and other student
+            % weight vetor
             Q_ik(i/samples,j) = dot(student_weights(1,:), student_weights(j,:));
             gen_error(i/samples) = generalizationerror(student_weights,teacher_weights,K);
     end
         student_s = student_scalar(j);
         % gradient derivative done
-        gradeint_epsilon_studentweights = (si - tou) * sqrt(2/pi)*exp(-(student_s*student_s)/2)* dataset;
-       % velocities = beta * velocities + (1-beta)* ((learning_rate/samples).* gradeint_epsilon_studentweights');
-        velocities = beta * velocities + (1-beta)* gradeint_epsilon_studentweights';
+        gradient_epsilon_studentweights = (si - tou) * sqrt(2/pi)*exp(-(student_s*student_s)/2)* dataset;
+       % updating the velocity
+        velocities = beta * velocities + (1-beta)* gradient_epsilon_studentweights';
+        % updating the studen weight vector using updated velocity
         student_weights(j,:) =  student_weights(j,:) - learning_rate/samples* (velocities);
         
     end
@@ -97,13 +102,11 @@ plot(x,Q_ik(:,1));
 plot(x,Q_ik(:,2));
 xlabel('alpha')
 ylabel('Order parameter (Nesterov accelerated gradient)')
-%plot(x,Q_ik(:,3));
-%legend('R','R','R','Q','Q','Q')
-legend('R','R','Q','Q')
+legend('R_{11}','R_{12}','Q_{11}','Q_{12}')
 gen_error
 figure(2)
-plot(x, gen_error,'m')
+plot(x, gen_error,'DisplayName', 'Nesterov')
+legend('-DynamicLegend');
 xlabel('alpha')
 ylabel('Generalization error ')
-legend('Nesterov accelerated gradient','Color',[0 0.9 0],'AutoUpdate','off')
-hold on
+hold all

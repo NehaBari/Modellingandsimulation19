@@ -1,5 +1,5 @@
 function [generalization_error] = generalizationerror(student_weights,teacher_weights,k)
-%UNTITLED Summary of this function goes here
+%Function calculating the generalisation error.
 %   Detailed explanation goes here
 student_weights = student_weights;
 teacher_weights = teacher_weights;
